@@ -51,9 +51,9 @@ Along with the normal capabilities you would expect for a calendar integration y
    - Add your app name and contact information
    - Add the following scopes (optional):
      - `https://www.googleapis.com/auth/calendar.events` (or broader `https://www.googleapis.com/auth/calendar` if needed)
-   - Select "Desktop app" as the application type
+   - Select "Desktop app" as the application type (Important!)
    - Add your email address as a test user under the [OAuth Consent screen](https://console.cloud.google.com/apis/credentials/consent)
-      - Note: it will take a few minutes for the test user to be added. The OAuth consent will not allow you to proceed until the test user has propogated.
+      - Note: it will take a few minutes for the test user to be added. The OAuth consent will not allow you to proceed until the test user has propagated.
       - Note about test mode: While an app is in test mode the auth tokens will expire after 1 week and need to be refreshed by running `npm run auth`.
 
 ## Installation
@@ -71,31 +71,46 @@ Along with the normal capabilities you would expect for a calendar integration y
 
 - `npm run build` - Build the TypeScript code (compiles `src` to `build`)
 - `npm run typecheck` - Run TypeScript type checking without compiling
-- `npm run start` - Start the compiled server (using `node build/index.js`)
-- `npm run dev` - Start the server in development mode using ts-node (watches for changes)
-- `npm run auth` - Manually start the authentication server for Google OAuth flow (useful if automatic flow fails or for testing)
+- `npm run start` - Start the compiled MCP server (using `node build/index.js`)
+- `npm run auth` - Manually run the Google OAuth authentication flow.
 - `npm test` - Run the unit/integration test suite using Vitest
 - `npm run test:watch` - Run tests in watch mode
 - `npm run coverage` - Run tests and generate a coverage report
 
 ## Authentication
 
-The server supports both automatic and manual authentication flows:
+The server handles Google OAuth 2.0 authentication to access your calendar data.
 
-### Automatic Authentication (Recommended)
-1. Place your Google OAuth credentials in `gcp-oauth.keys.json`.
-2. Start the MCP server: `npm start` or `npm run dev`.
-3. If no valid authentication tokens are found in `.gcp-saved-tokens.json`, the server will automatically:
-   - Start an authentication server (on ports 3000-3004 by default)
-   - Open a browser window for the OAuth flow
-   - Save the tokens securely to `.gcp-saved-tokens.json` once authenticated
-   - Shut down the auth server
-   - Continue normal MCP server operation
+### Automatic Authentication Flow (During Server Start)
 
-The server automatically manages token refresh.
+1. Ensure `gcp-oauth.keys.json` is correctly named and placed in the project root.
+2. Start the MCP server: `npm start`.
+3. The server will check for existing, valid authentication tokens in `.gcp-saved-tokens.json`.
+4. If valid tokens are found, the server starts normally.
+5. If no valid tokens are found:
+   - The server attempts to start a temporary local web server (trying ports 3000-3004).
+   - Your default web browser will automatically open to the Google Account login and consent screen.
+   - Follow the prompts in the browser to authorize the application.
+   - Upon successful authorization, you will be redirected to a local page (e.g., `http://localhost:3000/oauth2callback`).
+   - This page will display a success message confirming that the tokens have been saved to `.gcp-saved-tokens.json` (and show the exact file path).
+   - The temporary auth server shuts down automatically.
+   - The main MCP server continues its startup process.
 
-### Manual Authentication
-Run `npm run auth` to start only the authentication server. Authenticate via the browser, and the tokens will be saved.
+### Manual Authentication Flow
+
+If you need to re-authenticate or prefer to handle authentication separately:
+
+1. Run the command: `npm run auth`
+2. This script performs the same browser-based authentication flow described above.
+3. Your browser will open, you authorize, and you'll see the success page indicating where tokens were saved.
+4. The script will exit automatically upon successful authentication.
+
+### Token Management
+
+- Authentication tokens are stored in `.gcp-saved-tokens.json` in the project root.
+- This file is created automatically and should **not** be committed to version control (it's included in `.gitignore`).
+- The server attempts to automatically refresh expired access tokens using the stored refresh token.
+- If the refresh token itself expires (e.g., after 7 days if the Google Cloud app is in testing mode) or is revoked, you will need to re-authenticate using either the automatic flow (by restarting the server) or the manual `npm run auth` command.
 
 ## Testing
 
@@ -135,18 +150,19 @@ Tests mock external dependencies (Google API, filesystem) to ensure isolated tes
 
 ### Troubleshooting
 
-1. OAuth Token expires after one week (7 days)
-   - If your Google Cloud app is in testing mode, tokens expire weekly. Re-authenticate by running `npm run auth` or restarting the server.
+1. **Authentication Errors / Connection Reset on Callback:**
+   - Ensure `gcp-oauth.keys.json` exists and contains credentials for a **Desktop App** type.
+   - Verify your user email is added as a **Test User** in the Google Cloud OAuth Consent screen settings (allow a few minutes for changes to propagate).
+   - Try deleting `.gcp-saved-tokens.json` and re-authenticating (`npm run auth` or restart `npm start`).
+   - Check that no other process is blocking ports 3000-3004 when authentication is required.
 
-3. OAuth Token Errors / Authentication Failures
-   - Ensure `gcp-oauth.keys.json` exists in the project root and contains valid Desktop App credentials.
-   - Try deleting `.gcp-saved-tokens.json` and re-authenticating.
-   - Check the Google Cloud Console to ensure the Calendar API is enabled and your user is listed as a test user if the app is in testing mode.
-   - Verify no other process is using ports 3000-3004 when the auth server needs to start.
-   
-4. Build Errors
+2. **Tokens Expire Weekly:**
+   - If your Google Cloud app is in **Testing** mode, refresh tokens expire after 7 days. Re-authenticate when needed.
+   - Consider moving your app to **Production** in the Google Cloud Console for longer-lived refresh tokens (requires verification by Google).
+
+3. **Build Errors:**
    - Run `npm install` again.
-   - Check Node.js version.
+   - Check Node.js version (use LTS).
    - Delete the `build/` directory and run `npm run build`.
 
 ## License

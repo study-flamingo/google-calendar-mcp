@@ -14,6 +14,11 @@ export class TokenManager {
     this.setupTokenRefresh();
   }
 
+  // Method to expose the token path
+  public getTokenPath(): string {
+    return this.tokenPath;
+  }
+
   private async ensureTokenDirectoryExists(): Promise<void> {
     try {
         const dir = path.dirname(this.tokenPath);
@@ -113,7 +118,7 @@ export class TokenManager {
         return true;
       } catch (refreshError) {
         if (refreshError instanceof GaxiosError && refreshError.response?.data?.error === 'invalid_grant') {
-            console.error("Error refreshing auth token: Invalid grant. Token likely expired or revoked. Re-authentication required");
+            console.error("Error refreshing auth token: Invalid grant. Token likely expired or revoked. Please re-authenticate.");
             // Optionally clear the potentially invalid tokens here
             // await this.clearTokens(); 
             return false; // Indicate failure due to invalid grant
@@ -124,7 +129,7 @@ export class TokenManager {
         }
       }
     } else if (!this.oauth2Client.credentials.access_token && !this.oauth2Client.credentials.refresh_token) {
-        console.error("No access or refresh token available");
+        console.error("No access or refresh token available. Please re-authenticate.");
         return false;
     } else {
         // Token is valid or no refresh token available
@@ -151,9 +156,9 @@ export class TokenManager {
         await this.ensureTokenDirectoryExists();
         await fs.writeFile(this.tokenPath, JSON.stringify(tokens, null, 2), { mode: 0o600 });
         this.oauth2Client.setCredentials(tokens);
-        console.error("Tokens explicitly saved");
+        console.error("Tokens saved successfully to:", this.tokenPath);
     } catch (error: unknown) {
-        console.error("Error explicitly saving tokens:", error);
+        console.error("Error saving tokens:", error);
         throw error;
     }
   }

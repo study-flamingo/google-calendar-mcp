@@ -10,7 +10,7 @@ import type { google as GoogleApis } from 'googleapis';
 import type * as FsPromises from 'fs/promises';
 import type { Server as MCPServerType } from '@modelcontextprotocol/sdk/server/index.js';
 import type { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import type { TokenManager } from './token-manager.js';
+import type { TokenManager } from './auth/tokenManager.js';
 
 // --- Mocks ---
 
@@ -53,16 +53,18 @@ vi.mock('fs/promises', async (importOriginal) => {
 });
 
 // Mock AuthServer
-vi.mock('./auth-server.js', () => ({
+vi.mock('./auth/server.js', () => ({
   AuthServer: vi.fn().mockImplementation(() => ({
     start: vi.fn().mockResolvedValue(true),
     stop: vi.fn().mockResolvedValue(undefined),
   })),
 }));
 
-// Mock TokenManager
-const mockValidateTokens = vi.fn();
-vi.mock('./token-manager.js', () => ({
+// Mock TokenManager with the same mockValidateTokens
+const mockValidateTokens = vi.fn().mockResolvedValue(true);
+
+// Create a more detailed mock implementation that preserves the mock function
+vi.mock('./auth/tokenManager.js', () => ({
   TokenManager: vi.fn().mockImplementation(() => ({
     validateTokens: mockValidateTokens,
     loadSavedTokens: vi.fn().mockResolvedValue(true),
@@ -144,7 +146,9 @@ describe('Google Calendar MCP Tool Calls', () => {
         .mockResolvedValue(mockTokens);  // For subsequent calls like loadSavedTokens
         
     (fs.access as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-    mockValidateTokens.mockResolvedValue(true); 
+    
+    // Make sure validateTokens returns true for setup
+    mockValidateTokens.mockResolvedValue(true);
     mockProcessExit.mockClear(); // Clear exit mock before running main
 
     // Run main once to set up the actual handler
@@ -168,26 +172,20 @@ describe('Google Calendar MCP Tool Calls', () => {
     vi.clearAllMocks();
     mockProcessExit.mockClear(); // Clear exit mock
 
-    // Re-apply default mock implementations needed for the tests themselves
+    // IMPORTANT: Re-apply default mock implementations needed for the tests
     mockCalendarApi = google.calendar('v3') as unknown as ReturnType<GoogleApis['calendar']>;
-    mockValidateTokens.mockResolvedValue(true); // Assume authenticated by default for tests
+    
+    // Ensure validateTokens returns true for each test
+    mockValidateTokens.mockResolvedValue(true);
+    
     (fs.access as ReturnType<typeof vi.fn>).mockResolvedValue(true); // Assume token file access ok
     // readFile needs to be mocked specifically if a test case needs it beyond initialization
     (fs.readFile as ReturnType<typeof vi.fn>).mockClear(); // Clear initial readFile mocks
   });
 
   it('should reject if authentication is invalid (simulated)', async () => {
-    // Arrange: Simulate invalid/missing tokens AFTER main has run
-    // (We can't easily test the main() exit path here, so we test the handler's behavior 
-    // when called with a client that *would* fail API calls)
-    
-    // We don't need to mock validateTokens(false) here, 
-    // as the check was removed from the immediate handler call.
-    // Instead, we ensure the underlying API mock is NOT set up to succeed.
-    // Clear any default mocks for the API call that might exist from beforeEach
-    vi.mocked(mockCalendarApi.calendarList.list).mockReset();
-    // Optionally, make it explicitly reject:
-    vi.mocked(mockCalendarApi.calendarList.list).mockRejectedValue(new Error('Simulated API auth error'));
+    // Arrange: Simulate invalid/missing tokens
+    mockValidateTokens.mockResolvedValueOnce(false);
 
     const request = {
       params: {
@@ -196,11 +194,9 @@ describe('Google Calendar MCP Tool Calls', () => {
       },
     };
 
-    // Act & Assert: Expect the handler to reject because the underlying API call fails
+    // Act & Assert: Expect the handler to reject because we mocked validateTokens to return false
     if (!callToolHandler) throw new Error('callToolHandler not captured');
-    await expect(callToolHandler(request)).rejects.toThrow(); // Check for *any* rejection
-    // Optionally, check *which* api call failed or was attempted:
-    // expect(mockCalendarApi.calendarList.list).toHaveBeenCalled(); // Verify it got called
+    await expect(callToolHandler(request)).rejects.toThrow("Authentication required. Please run 'npm run auth' to authenticate."); 
   });
 
   it('should handle "list-calendars" tool call', async () => {
@@ -519,6 +515,30 @@ describe('Google Calendar MCP Tool Calls', () => {
         // Act & Assert: Expect Zod validation error
         if (!callToolHandler) throw new Error('callToolHandler not captured');
         await expect(callToolHandler(request)).rejects.toThrow(); // ZodError
+    });
+
+    it('should use the mocked validateTokens function', async () => {
+      // Arrange
+      mockValidateTokens.mockReset();
+      mockValidateTokens.mockResolvedValueOnce(true);
+      
+      const request = {
+        params: {
+          name: 'list-calendars',
+          arguments: {},
+        },
+      };
+      
+      // Mock the calendar list call
+      (mockCalendarApi.calendarList.list as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: { items: [] },
+      });
+      
+      // Act
+      await callToolHandler(request);
+      
+      // Assert
+      expect(mockValidateTokens).toHaveBeenCalledTimes(1);
     });
 
   // TODO: Add more tests for:

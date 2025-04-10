@@ -15,8 +15,6 @@ import { getToolDefinitions } from './handlers/listTools.js';
 import { handleCallTool } from './handlers/callTool.js';
 
 // --- Global Variables --- 
-// Necessary because they are initialized in main and used in handlers/cleanup
-
 // Create server instance (global for export)
 const server = new Server(
   {
@@ -35,7 +33,6 @@ let tokenManager: TokenManager;
 let authServer: AuthServer;
 
 // --- Main Application Logic --- 
-
 async function main() {
   // All logging must use console.error, not console.log, to avoid interfering with stdio transport
   console.error("=== MCP SERVER STARTUP SEQUENCE STARTED ===");
@@ -77,6 +74,11 @@ async function main() {
 
     // Call Tool Handler
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      // Check if tokens are valid before handling the request
+      if (!(await tokenManager.validateTokens())) {
+        throw new Error("Authentication required. Please run 'npm run auth' to authenticate.");
+      }
+      
       // Delegate the actual tool execution to the specialized handler
       return handleCallTool(request, oauth2Client);
     });
@@ -92,7 +94,6 @@ async function main() {
     process.on("SIGTERM", cleanup);
 
   } catch (error: unknown) {
-    console.error("Server startup failed:", error instanceof Error ? error.message : error);
     process.exit(1);
   }
   console.error("=== MCP SERVER STARTUP SEQUENCE COMPLETED SUCCESSFULLY ===");
@@ -100,34 +101,26 @@ async function main() {
 }
 
 // --- Cleanup Logic --- 
-
 async function cleanup() {
-  console.error("\nShutting down gracefully...");
   try {
-  if (authServer) {
-        // Attempt to stop the auth server if it exists and might be running
-    await authServer.stop();
-  }
-    // No need to clear tokens; let them persist for the next run.
-    console.error("Cleanup complete.");
+    if (authServer) {
+      // Attempt to stop the auth server if it exists and might be running
+      await authServer.stop();
+    }
     process.exit(0);
   } catch (error: unknown) {
-    console.error("Error during cleanup:", error instanceof Error ? error.message : error);
-    process.exit(1); // Exit with error on cleanup failure
+    process.exit(1);
   }
 }
 
 // --- Exports & Execution Guard --- 
-
 // Export server and main for testing or potential programmatic use
 export { main, server };
 
 // Run main() only when this script is executed directly
 const isDirectRun = import.meta.url.startsWith('file://') && process.argv[1] === fileURLToPath(import.meta.url);
 if (isDirectRun) {
-  main().catch((error: unknown) => {
-    // Catch unhandled errors from main's async execution
-    console.error("Fatal error during main execution:", error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+  main().catch(() => {
+    process.exit(1);
+  });
 }

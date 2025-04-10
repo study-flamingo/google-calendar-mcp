@@ -17,11 +17,6 @@ import {
     updateEvent,
     deleteEvent
 } from '../services/googleCalendar.js';
-import {
-    CalendarListEntry, 
-    CalendarEvent, 
-    CalendarEventAttendee
-} from '../schemas/types.js';
 
 /**
  * Formats a list of calendars into a user-friendly string.

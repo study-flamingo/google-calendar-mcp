@@ -10,9 +10,6 @@ import {
 } from '../schemas/validators.js';
 import { z } from 'zod';
 
-// Type alias for Calendar API instance
-type CalendarApi = calendar_v3.Calendar;
-
 // Helper function to handle common GaxiosError for invalid grant
 function handleGoogleApiError(error: unknown): void {
     if (error instanceof GaxiosError && error.response?.data?.error === 'invalid_grant') {

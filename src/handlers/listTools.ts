@@ -57,13 +57,13 @@ export function getToolDefinitions() {
             },
             timeMin: {
               type: "string",
-              format: "date-time", // Indicate ISO 8601 format expected
-              description: "Start time in ISO format (optional, e.g., 2024-01-01T00:00:00Z)",
+              format: "date-time",
+              description: "Start time in ISO format with timezone required (e.g., 2024-01-01T00:00:00Z or 2024-01-01T00:00:00+00:00). Date-time must end with Z (UTC) or +/-HH:MM offset.",
             },
             timeMax: {
               type: "string",
-              format: "date-time", // Indicate ISO 8601 format expected
-              description: "End time in ISO format (optional, e.g., 2024-12-31T23:59:59Z)",
+              format: "date-time",
+              description: "End time in ISO format with timezone required (e.g., 2024-12-31T23:59:59Z or 2024-12-31T23:59:59+00:00). Date-time must end with Z (UTC) or +/-HH:MM offset.",
             },
           },
           required: ["calendarId"],
@@ -86,12 +86,12 @@ export function getToolDefinitions() {
             timeMin: {
               type: "string",
               format: "date-time",
-              description: "Start time boundary in ISO format (optional)",
+              description: "Start time boundary in ISO format with timezone required (e.g., 2024-01-01T00:00:00Z or 2024-01-01T00:00:00+00:00). Date-time must end with Z (UTC) or +/-HH:MM offset.",
             },
             timeMax: {
               type: "string",
               format: "date-time",
-              description: "End time boundary in ISO format (optional)",
+              description: "End time boundary in ISO format with timezone required (e.g., 2024-12-31T23:59:59Z or 2024-12-31T23:59:59+00:00). Date-time must end with Z (UTC) or +/-HH:MM offset.",
             },
           },
           required: ["calendarId", "query"],
@@ -127,12 +127,12 @@ export function getToolDefinitions() {
             start: {
               type: "string",
               format: "date-time",
-              description: "Start time in ISO format (e.g., 2024-08-15T10:00:00-07:00)",
+              description: "Start time in ISO format with timezone required (e.g., 2024-08-15T10:00:00Z or 2024-08-15T10:00:00-07:00). Date-time must end with Z (UTC) or +/-HH:MM offset.",
             },
             end: {
               type: "string",
               format: "date-time",
-              description: "End time in ISO format (e.g., 2024-08-15T11:00:00-07:00)",
+              description: "End time in ISO format with timezone required (e.g., 2024-08-15T11:00:00Z or 2024-08-15T11:00:00-07:00). Date-time must end with Z (UTC) or +/-HH:MM offset.",
             },
             timeZone: {
               type: "string",
@@ -200,12 +200,12 @@ export function getToolDefinitions() {
             start: {
               type: "string",
               format: "date-time",
-              description: "New start time in ISO format (optional)",
+              description: "New start time in ISO format with timezone required (e.g., 2024-08-15T10:00:00Z or 2024-08-15T10:00:00-07:00). Date-time must end with Z (UTC) or +/-HH:MM offset.",
             },
             end: {
               type: "string",
               format: "date-time",
-              description: "New end time in ISO format (optional)",
+              description: "New end time in ISO format with timezone required (e.g., 2024-08-15T11:00:00Z or 2024-08-15T11:00:00-07:00). Date-time must end with Z (UTC) or +/-HH:MM offset.",
             },
             timeZone: {
               type: "string",
