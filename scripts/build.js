@@ -7,6 +7,13 @@ import { dirname, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isWatch = process.argv.includes('--watch');
 
+// Use console.error for all logging to avoid interfering with stdio transport
+console.error('=== BUILD SCRIPT EXECUTION STARTED ===');
+console.error(`Script executed from: ${process.cwd()}`);
+console.error(`Script path: ${import.meta.url}`);
+console.error(`Arguments: ${process.argv.join(', ')}`);
+console.error(`Execution context: ${process.env.npm_lifecycle_event || 'direct'}`);
+
 /** @type {import('esbuild').BuildOptions} */
 const buildOptions = {
   entryPoints: [join(__dirname, '../src/index.ts')],
@@ -40,14 +47,17 @@ if (isWatch) {
   await Promise.all([context.watch(), authContext.watch()]);
   console.log('Watching for changes...');
 } else {
+  console.error('Building main server and auth server...');
   await Promise.all([
     esbuild.build(buildOptions),
     esbuild.build(authServerBuildOptions)
   ]);
+  console.error('Build completed successfully.');
   
   // Make the file executable on non-Windows platforms
   if (process.platform !== 'win32') {
     const { chmod } = await import('fs/promises');
     await chmod(buildOptions.outfile, 0o755);
   }
+  console.error('=== BUILD SCRIPT EXECUTION COMPLETED ===');
 } 

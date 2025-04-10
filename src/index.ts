@@ -37,15 +37,22 @@ let authServer: AuthServer;
 // --- Main Application Logic --- 
 
 async function main() {
+  // All logging must use console.error, not console.log, to avoid interfering with stdio transport
+  console.error("=== MCP SERVER STARTUP SEQUENCE STARTED ===");
   try {
     // 1. Initialize Authentication
+    console.error("Step 1: Initializing Authentication...");
     oauth2Client = await initializeOAuth2Client();
     tokenManager = new TokenManager(oauth2Client);
     authServer = new AuthServer(oauth2Client);
 
     // 2. Ensure Authentication or Start Auth Server
     // validateTokens attempts to load/refresh first.
-    if (!(await tokenManager.validateTokens())) { 
+    console.error("Step 2: Validating authentication tokens...");
+    const tokensValid = await tokenManager.validateTokens();
+    console.error(`Token validation result: ${tokensValid ? 'VALID' : 'INVALID/MISSING'}`);
+    
+    if (!tokensValid) {
       console.error("Authentication required or token expired, starting auth server...");
       const success = await authServer.start(); // Tries ports 3000-3004
       if (!success) {
@@ -59,8 +66,10 @@ async function main() {
     }
 
     // 3. Set up MCP Handlers
+    console.error("Step 3: Setting up MCP handlers...");
     
     // List Tools Handler
+    console.error("Setting up tool definitions handler...");
     server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Directly return the definitions from the handler module
       return getToolDefinitions();
@@ -73,10 +82,12 @@ async function main() {
     });
 
     // 4. Connect Server Transport
+    console.error("Step 4: Connecting server transport...");
     const transport = new StdioServerTransport();
     await server.connect(transport);
 
     // 5. Set up Graceful Shutdown
+    console.error("Step 5: Setting up graceful shutdown...");
     process.on("SIGINT", cleanup);
     process.on("SIGTERM", cleanup);
 
@@ -84,6 +95,8 @@ async function main() {
     console.error("Server startup failed:", error instanceof Error ? error.message : error);
     process.exit(1);
   }
+  console.error("=== MCP SERVER STARTUP SEQUENCE COMPLETED SUCCESSFULLY ===");
+  // Note: After this point, stdout is reserved exclusively for MCP protocol messages
 }
 
 // --- Cleanup Logic --- 

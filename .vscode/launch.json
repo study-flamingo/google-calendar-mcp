@@ -1,0 +1,40 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "command": "npm start",
+      "name": "Run npm start",
+      "request": "launch",
+      "outputCapture": "std",
+      "type": "node-terminal"
+    },
+    {
+      "name": "MCP Inspector",
+      "request": "launch",
+      "type": "node",
+      "outputCapture": "std",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "-y",
+        "@modelcontextprotocol/inspector",
+        "npm google-calendar-mcp"
+      ],
+      "autoAttachChildProcesses": false,
+      "skipFiles": [ 
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}\\build\\index.js"
+    }
+  ]
+}
