@@ -136,7 +136,7 @@ dist
 .pnp.*
 
 # Project specific
-build/
 .gcp-*
 gcp-*
 mcp.json
+google-calendar-mcp.code-workspace

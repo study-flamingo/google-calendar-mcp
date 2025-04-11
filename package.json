@@ -9,12 +9,13 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && node scripts/build.js",
-    "start": "C:\\Program Files (x86)\\Nodist\\v-x64\\22.9.0\\node.exe build/index.js",
+    "start": "node build/index.js",
     "auth": "node build/auth-server.js",
-    "postinstall": "scripts/build.js",
+    "postinstall": "node scripts/build.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "inspector": "npx @modelcontextprotocol/inspector npm start"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
